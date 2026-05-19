@@ -14,7 +14,6 @@ import SwiftUI
 /// - position of message in its continuous group of comments (only works for .answer ReplyMode, nil for .quote mode)
 /// - closure to show message context menu
 /// - closure to pass user interaction, .reply for example
-/// - pass attachment to this closure to use ChatView's fullscreen media viewer
 public struct MessageBuilderParameters {
     public let message: Message
     public let positionInGroup: PositionInUserGroup
@@ -22,7 +21,6 @@ public struct MessageBuilderParameters {
     public let positionInCommentsGroup: CommentsPosition?
     public let showContextMenuClosure: () -> Void
     public let messageActionClosure: (Message, DefaultMessageMenuAction) -> Void
-    public let showAttachmentClosure: (Attachment) -> Void
 
     @MainActor public func defaultMessageView() -> some View {
         DefaultMessageView(params: self)
@@ -79,7 +77,6 @@ extension ChatView {
         ) -> Void = { (selectedMenuAction: DefaultMessageMenuAction, defaultActionClosure, message) in
             defaultActionClosure(message, selectedMenuAction)
         },
-        didUpdateAttachmentStatus: ((AttachmentUploadUpdate) -> Void)? = nil
     ) {
         self.type = chatType
         self.sections = ChatView.mapMessages(messages, chatType: chatType, replyMode: replyMode)
@@ -88,7 +85,6 @@ extension ChatView {
         self.messageBuilder = messageBuilder
         self.inputViewBuilder = inputViewBuilder
         self.messageMenuAction = messageMenuAction
-        self.didUpdateAttachmentStatus = didUpdateAttachmentStatus
     }
 }
 

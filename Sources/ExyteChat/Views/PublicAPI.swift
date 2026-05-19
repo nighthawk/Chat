@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import ExyteMediaPicker
 
 public extension ChatView {
 
@@ -301,44 +300,6 @@ public extension ChatView {
     func setAvailableInputs(_ types: [AvailableInputType]) -> ChatView {
         var view = self
         view.inputViewCustomizationParameters.availableInputs = types
-        return view
-    }
-
-    func setRecorderSettings(_ settings: RecorderSettings) -> ChatView {
-        var view = self
-        view.inputViewCustomizationParameters.recorderSettings = settings
-        return view
-    }
-
-    // MARK: - Media picker
-
-    func setMediaPickerLiveCameraStyle(_ style: MediaPickerLiveCameraStyle) -> ChatView {
-        var view = self
-        view.inputViewCustomizationParameters.mediaPickerParameters.liveCameraStyle = style
-        return view
-    }
-
-    func assetsPickerLimit(assetsPickerLimit: Int) -> ChatView {
-        var view = self
-        view.inputViewCustomizationParameters.mediaPickerParameters.selectionParameters.selectionLimit = assetsPickerLimit
-        return view
-    }
-
-    func setMediaPickerSelectionParameters(_ params: MediaPickerSelectionParameters) -> ChatView {
-        var view = self
-        view.inputViewCustomizationParameters.mediaPickerParameters.selectionParameters = params
-        return view
-    }
-
-    func orientationHandler(orientationHandler: @escaping MediaPickerOrientationHandler) -> ChatView {
-        var view = self
-        view.inputViewCustomizationParameters.mediaPickerParameters.orientationHandler = orientationHandler
-        return view
-    }
-
-    func setMediaPickerParameters(_ params: MediaPickerParameters) -> ChatView {
-        var view = self
-        view.inputViewCustomizationParameters.mediaPickerParameters = params
         return view
     }
 }

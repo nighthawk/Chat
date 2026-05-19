@@ -10,9 +10,6 @@ import SwiftUI
 @MainActor
 final class ChatViewModel: ObservableObject {
 
-    @Published private(set) var fullscreenAttachmentItem: Optional<Attachment> = nil
-    @Published var fullscreenAttachmentPresented = false
-
     @Published var messageMenuRow: MessageRow?
     
     /// The messages frame that is currently being rendered in the Message Menu
@@ -25,23 +22,8 @@ final class ChatViewModel: ObservableObject {
     let inputFieldId = UUID()
 
     var didSendMessage: (DraftMessage) -> Void = {_ in }
-    var didUpdateAttachmentStatus: (AttachmentUploadUpdate) -> Void = { _ in }
     var inputViewModel: InputViewModel?
     var globalFocusState: GlobalFocusState?
-
-    func presentAttachmentFullScreen(_ attachment: Attachment) {
-        fullscreenAttachmentItem = attachment
-        fullscreenAttachmentPresented = true
-    }
-    
-    func dismissAttachmentFullScreen() {
-        fullscreenAttachmentPresented = false
-        fullscreenAttachmentItem = nil
-    }
-    
-    func updateAttachmentStatus(_ uploadUpdate: AttachmentUploadUpdate) {
-        didUpdateAttachmentStatus(uploadUpdate)
-    }
 
     func sendMessage(_ message: DraftMessage) {
         didSendMessage(message)

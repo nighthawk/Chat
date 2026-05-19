@@ -31,10 +31,7 @@ struct ChatMessageView<MessageContent: View>: View {
                     positionInMessagesSection: row.positionInMessagesSection,
                     positionInCommentsGroup: row.commentsPosition,
                     showContextMenuClosure: { viewModel.messageMenuRow = row },
-                    messageActionClosure: viewModel.messageMenuAction(),
-                    showAttachmentClosure: { attachment in
-                        self.viewModel.presentAttachmentFullScreen(attachment)
-                    }
+                    messageActionClosure: viewModel.messageMenuAction()
                 )
             )
 
