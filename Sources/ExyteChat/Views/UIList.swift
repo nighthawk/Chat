@@ -580,7 +580,9 @@ struct UIList<MessageContent: View>: UIViewRepresentable {
 
         @ViewBuilder
         func dateViewBuilder(_ section: Int) -> some View {
-            if let dateHeaderBuilder {
+            if section >= sections.count {
+                EmptyView()
+            } else if let dateHeaderBuilder {
                 dateHeaderBuilder(sections[section].date)
             } else {
                 Text(sections[section].formattedDate)
