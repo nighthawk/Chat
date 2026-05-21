@@ -19,10 +19,6 @@ let package = Package(
             from: "3.4.4"
         ),
         .package(
-           url: "https://github.com/Giphy/giphy-ios-sdk",
-           exact: "2.2.16"
-        ),
-        .package(
             url: "https://github.com/onevcat/Kingfisher",
             from: "8.5.0"
         ),
@@ -36,7 +32,6 @@ let package = Package(
             name: "ExyteChat",
             dependencies: [
                 .product(name: "ExyteMediaPicker", package: "MediaPicker"),
-                .product(name: "GiphyUISDK", package: "giphy-ios-sdk"),
                 .product(name: "Kingfisher", package: "Kingfisher"),
                 .product(name: "AnchoredPopup", package: "AnchoredPopup")
             ],

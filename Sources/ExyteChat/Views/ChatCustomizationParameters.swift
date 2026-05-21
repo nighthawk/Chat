@@ -76,9 +76,7 @@ struct MessageCustomizationParameters {
 struct InputViewCustomizationParameters {
     var externalInputText: String? // External → Internal
     var onInputTextChange: ((String) -> Void)? // Internal → External
-    var availableInputs: [AvailableInputType] = [.text, .audio, .media]
-    var recorderSettings = RecorderSettings()
-    var audioRecordingMode: AudioRecordingMode = .holdToRecord
+    var availableInputs: [AvailableInputType] = [.text, .media]
     var mediaPickerParameters = MediaPickerParameters()
     var photoPickerBackend: PhotoPickerBackend = .custom
 }

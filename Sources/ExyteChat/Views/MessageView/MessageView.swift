@@ -23,8 +23,6 @@ struct MessageView: View {
     let params: MessageCustomizationParameters
     let isDisplayingMessageMenu: Bool
 
-    @State var giphyAspectRatio: CGFloat = 1
-
     static let widthWithMedia: CGFloat = 204
     static let statusViewWidth: CGFloat = 10
     static let horizontalScreenEdgePadding: CGFloat = 12
@@ -166,10 +164,6 @@ struct MessageView: View {
                         .padding(.horizontal, MessageView.horizontalTextPadding)
                 }
 
-                if let giphyMediaId = message.giphyMediaId {
-                    giphyView(giphyMediaId)
-                }
-
                 if let staticLocation = message.staticLocation {
                     staticLocationView(staticLocation)
                 }
@@ -185,15 +179,6 @@ struct MessageView: View {
                 if message.hasText {
                     textWithTimeView(message)
                         .font(Font(params.font))
-                }
-
-                if let recording = message.recording {
-                    VStack(alignment: .trailing, spacing: 8) {
-                        recordingView(recording)
-                        messageTimeView()
-                            .padding(.trailing, 12)
-                            .padding(.bottom, 8)
-                    }
                 }
             }
             .padding(.top, (params.showUsername && !message.user.isCurrentUser) || message.attachments.isEmpty ? 8 : 0)
@@ -226,10 +211,6 @@ struct MessageView: View {
                     params: params
                 )
                 .padding(.horizontal, MessageView.horizontalTextPadding)
-            }
-
-            if let recording = message.recording {
-                recordingView(recording)
             }
         }
         .font(.caption2)
@@ -289,12 +270,6 @@ struct MessageView: View {
             }
         }
         .contentShape(Rectangle())
-    }
-
-    @ViewBuilder
-    func giphyView(_ giphyMediaId: String) -> some View {
-        GiphyMediaView(id: giphyMediaId, aspectRatio: $giphyAspectRatio)
-            .frame(width: 200 * giphyAspectRatio, height: 200)
     }
 
     @ViewBuilder
@@ -468,21 +443,6 @@ struct MessageView: View {
     }
 
     @ViewBuilder
-    func recordingView(_ recording: Recording) -> some View {
-        RecordWaveformWithButtons(
-            recordPlayer: viewModel.messageRecordingPlayer,
-            recording: recording,
-            colorButton: message.user.isCurrentUser
-                ? theme.colors.messageMyBG : theme.colors.mainBG,
-            colorButtonBg: message.user.isCurrentUser
-                ? theme.colors.mainBG : theme.colors.messageMyBG,
-            colorWaveform: theme.colors.messageText(message.user.type)
-        )
-        .padding(.horizontal, MessageView.horizontalTextPadding)
-        .padding(.top, 8)
-    }
-
-    @ViewBuilder
     func messageTimeView(needsCapsule: Bool = false) -> some View {
         if params.showTimeView {
             Group {
@@ -520,7 +480,7 @@ extension View {
         )
         .foregroundColor(theme.colors.messageText(message.user.type))
         .background {
-            if (params.showUsername && !message.user.isCurrentUser) || isReply || message.hasText || message.recording != nil {
+            if (params.showUsername && !message.user.isCurrentUser) || isReply || message.hasText {
                 RoundedRectangle(cornerRadius: radius)
                     .foregroundColor(theme.colors.messageBG(message.user.type))
                     .opacity(isReply ? theme.style.replyOpacity : 1)

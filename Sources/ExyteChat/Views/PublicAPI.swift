@@ -347,18 +347,6 @@ public extension ChatView {
         return view
     }
 
-    func setRecorderSettings(_ settings: RecorderSettings) -> ChatView {
-        var view = self
-        view.inputViewCustomizationParameters.recorderSettings = settings
-        return view
-    }
-
-    func audioRecordingMode(_ mode: AudioRecordingMode) -> ChatView {
-        var view = self
-        view.inputViewCustomizationParameters.audioRecordingMode = mode
-        return view
-    }
-
     // MARK: - Media picker
 
     func setMediaPickerLiveCameraStyle(_ style: MediaPickerLiveCameraStyle) -> ChatView {
