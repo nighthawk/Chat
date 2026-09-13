@@ -4,7 +4,6 @@
 
 import Foundation
 import Combine
-import ExyteMediaPicker
 import SwiftUI
 
 @MainActor
@@ -17,8 +16,6 @@ final class InputViewModel: ObservableObject {
     @Published var showPicker = false
     @Published var showDocumentPicker = false
     @Published var showLocationPicker = false
-
-    @Published var mediaPickerMode = MediaPickerMode.photos
 
     @Published var showActivityIndicator = false
 
@@ -65,12 +62,6 @@ final class InputViewModel: ObservableObject {
     private func inputViewActionInternal(_ action: InputViewAction) {
         switch action {
         case .photo:
-            mediaPickerMode = .photos
-            showPicker = true
-        case .add:
-            mediaPickerMode = .camera
-        case .camera:
-            mediaPickerMode = .camera
             showPicker = true
         case .document:
             showDocumentPicker = true

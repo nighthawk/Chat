@@ -17,10 +17,10 @@ struct TextInputView: View {
     var localization: ChatLocalization
     
     var body: some View {
-        TextField("", text: $text, prompt: Text(style == .message ? localization.inputPlaceholder : localization.signatureText)
-            .foregroundColor(style == .message ? theme.colors.inputPlaceholderText : theme.colors.inputSignaturePlaceholderText), axis: .vertical)
+        TextField("", text: $text, prompt: Text(localization.inputPlaceholder)
+            .foregroundColor(theme.colors.inputPlaceholderText), axis: .vertical)
             .customFocus($globalFocusState.focus, equals: .uuid(inputFieldId))
-            .foregroundColor(style == .message ? theme.colors.inputText : theme.colors.inputSignatureText)
+            .foregroundColor(theme.colors.inputText)
             .padding(.vertical, 10)
             .padding(.leading, !isAttachmentsAvailable() ? 12 : 0)
             .simultaneousGesture(

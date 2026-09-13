@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import ExyteMediaPicker
 
 public struct DraftMessage: Sendable {
     public var id: String?

@@ -7,10 +7,6 @@
 
 import SwiftUI
 import PhotosUI
-import ExyteMediaPicker
-
-public typealias MediaPickerLiveCameraStyle = LiveCameraCellStyle
-public typealias MediaPickerSelectionParameters = SelectionParameters // showFullscreenPreview doesn't work with the system picker
 
 public enum ChatType: CaseIterable, Sendable {
     case conversation // the latest message is at the bottom, new messages appear from the bottom
@@ -99,26 +95,6 @@ public struct ChatView<MessageContent: View, InputViewContent: View, MenuAction:
 
     @State private var chatSize: CGSize = .zero
 
-    /// the system picker only handles photo/video library browsing, not camera capture,
-    /// so camera requests always fall through to the ExyteMediaPicker
-    private var useSystemPhotoPicker: Bool {
-        inputViewCustomizationParameters.photoPickerBackend == .system && inputViewModel.mediaPickerMode == .photos
-    }
-
-    private var customMediaPickerBinding: Binding<Bool> {
-        Binding(
-            get: { inputViewModel.showPicker && !useSystemPhotoPicker },
-            set: { inputViewModel.showPicker = $0 }
-        )
-    }
-
-    private var systemMediaPickerBinding: Binding<Bool> {
-        Binding(
-            get: { inputViewModel.showPicker && useSystemPhotoPicker },
-            set: { inputViewModel.showPicker = $0 }
-        )
-    }
-
     // MARK: - Body
 
     public var body: some View {
@@ -178,20 +154,9 @@ public struct ChatView<MessageContent: View, InputViewContent: View, MenuAction:
 
     private var mainViewWithBehaviorsAndSheets: some View {
         mainViewWithBehaviors
-            .fullScreenCover(isPresented: customMediaPickerBinding) {
-                AttachmentsEditor(
-                    inputViewModel: inputViewModel,
-                    inputViewBuilder: inputViewBuilder,
-                    mediaPickerParameters: inputViewCustomizationParameters.mediaPickerParameters,
-                    availableInputs: inputViewCustomizationParameters.availableInputs,
-                    localization: chatCustomizationParameters.localization
-                )
-                .environmentObject(globalFocusState)
-                .environmentObject(keyboardState)
-            }
             .systemPhotoPicker(
-                isPresented: systemMediaPickerBinding,
-                selectionParameters: inputViewCustomizationParameters.mediaPickerParameters.selectionParameters
+                isPresented: $inputViewModel.showPicker,
+                selectionParameters: inputViewCustomizationParameters.mediaSelectionParameters
             ) { medias in
                 inputViewModel.attachments.medias = medias
             }
@@ -405,7 +370,6 @@ public struct ChatView<MessageContent: View, InputViewContent: View, MenuAction:
                     inputFieldId: viewModel.inputFieldId,
                     style: .message,
                     availableInputs: inputViewCustomizationParameters.availableInputs,
-                    photoPickerBackend: inputViewCustomizationParameters.photoPickerBackend,
                     localization: chatCustomizationParameters.localization
                 )
             } else {

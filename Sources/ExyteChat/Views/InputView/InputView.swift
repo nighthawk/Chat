@@ -6,18 +6,14 @@
 //
 
 import SwiftUI
-import ExyteMediaPicker
 import AnchoredPopup
 
 public enum InputViewStyle: Sendable {
     case message
-    case signature
 }
 
 public enum InputViewAction: Sendable {
     case photo
-    case add
-    case camera
     case send
 
     case location
@@ -59,7 +55,6 @@ public struct InputViewAttachments {
 struct InputView: View {
     
     @Environment(\.chatTheme) private var theme
-    @Environment(\.mediaPickerTheme) private var pickerTheme
     @Environment(\.chatSize) private var chatSize
 
     @EnvironmentObject private var keyboardState: KeyboardState
@@ -68,7 +63,6 @@ struct InputView: View {
     var inputFieldId: UUID
     var style: InputViewStyle
     var availableInputs: [AvailableInputType]
-    var photoPickerBackend: PhotoPickerBackend = .custom
     var localization: ChatLocalization
 
     private var onAction: (InputViewAction) -> Void {
@@ -104,7 +98,7 @@ struct InputView: View {
                 }
                 .background {
                     RoundedRectangle(cornerRadius: 18)
-                        .fill(style == .message ? theme.colors.inputBG : theme.colors.inputSignatureBG)
+                        .fill(theme.colors.inputBG)
                 }
                 .frameGetter($inputBarFrame)
 
@@ -118,18 +112,8 @@ struct InputView: View {
         }
     }
     
-    @ViewBuilder
     var leftView: some View {
-        switch style {
-        case .message:
-            leftButton
-        case .signature:
-            if viewModel.mediaPickerMode == .cameraSelection {
-                addButton
-            } else {
-                Color.clear.frame(width: 12, height: 1)
-            }
-        }
+        leftButton
     }
 
     @ViewBuilder
@@ -202,7 +186,7 @@ struct InputView: View {
 
     @ViewBuilder
     var viewOnTop: some View {
-        if style == .message, photoPickerBackend == .system, !viewModel.attachments.medias.isEmpty {
+        if style == .message, !viewModel.attachments.medias.isEmpty {
             mediaAttachmentsPreview
         }
         if style == .message, !viewModel.attachments.documents.isEmpty {
@@ -358,9 +342,6 @@ struct InputView: View {
         var items: [AttachMenuItem] = []
         if isMediaAvailable() {
             items.append(AttachMenuItem(icon: theme.images.inputView.attach, title: localization.attachMediaText, action: .photo))
-            if photoPickerBackend == .system {
-                items.append(AttachMenuItem(icon: theme.images.inputView.attachCamera, title: localization.attachCameraText, action: .camera))
-            }
         }
         if isDocumentAvailable() {
             items.append(AttachMenuItem(icon: theme.images.attachMenu.document, title: localization.attachDocumentText, action: .document))
@@ -444,17 +425,6 @@ struct InputView: View {
         }
     }
 
-    var addButton: some View {
-        Button {
-            onAction(.add)
-        } label: {
-            theme.images.inputView.add
-                .viewSize(24)
-                .circleBackground(theme.colors.sendButtonBackground)
-                .padding(EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 8))
-        }
-    }
-    
     var sendButton: some View {
         Button {
             onAction(.send)
@@ -467,12 +437,7 @@ struct InputView: View {
     
     
     var backgroundColor: Color {
-        switch style {
-        case .message:
-            return theme.contentBG
-        case .signature:
-            return pickerTheme.main.pickerBackground
-        }
+        theme.contentBG
     }
 
     private func isMediaAvailable() -> Bool {

@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import ExyteMediaPicker
 
 struct ChatCustomizationParameters {
     var isListAboveInputView: Bool = true
@@ -77,17 +76,37 @@ struct InputViewCustomizationParameters {
     var externalInputText: String? // External → Internal
     var onInputTextChange: ((String) -> Void)? // Internal → External
     var availableInputs: [AvailableInputType] = [.text, .media]
-    var mediaPickerParameters = MediaPickerParameters()
-    var photoPickerBackend: PhotoPickerBackend = .custom
+    var mediaSelectionParameters = MediaPickerSelectionParameters()
 }
 
-public typealias MediaPickerParameters = ExyteMediaPicker.MediaPickerCutomizationParameters
+/// What the system photo picker offers, and how much of it the user may take.
+public struct MediaPickerSelectionParameters: Sendable, Equatable {
 
-/// Which photo/video picker is presented when the user taps to attach media.
-public enum PhotoPickerBackend: Sendable, Equatable {
-    /// ExyteMediaPicker fully customizable built-in media picker (default)
-    case custom
-    /// Apple's native PhotosPicker
-    /// Camera capture always uses the ExyteMediaPicker regardless of this setting.
-    case system
+    /// Maximum number of items selectable at once; `nil` means no limit.
+    public var selectionLimit: Int?
+    public var mediaType: MediaSelectionType
+    public var selectionStyle: MediaSelectionStyle
+
+    public init(
+        selectionLimit: Int? = 1,
+        mediaType: MediaSelectionType = .photoAndVideo,
+        selectionStyle: MediaSelectionStyle = .checkmark
+    ) {
+        self.selectionLimit = selectionLimit
+        self.mediaType = mediaType
+        self.selectionStyle = selectionStyle
+    }
+}
+
+public enum MediaSelectionType: Sendable, Equatable {
+    case photo
+    case video
+    case photoAndVideo
+}
+
+public enum MediaSelectionStyle: Sendable, Equatable {
+    /// Plain checkmarks, in the order the system returns them.
+    case checkmark
+    /// Numbered badges reflecting the order the user tapped them.
+    case count
 }
