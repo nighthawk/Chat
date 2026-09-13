@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import ExyteMediaPicker
 
 public enum AttachmentType: String, Codable, Sendable {
     case image

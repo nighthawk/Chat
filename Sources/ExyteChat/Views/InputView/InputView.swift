@@ -6,36 +6,16 @@
 //
 
 import SwiftUI
-import ExyteMediaPicker
-import GiphyUISDK
 import AnchoredPopup
 
 public enum InputViewStyle: Sendable {
     case message
-    case signature
-}
-
-public enum AudioRecordingMode: Sendable {
-    /// Default: hold the mic button to record; slide up to lock into hands-free mode.
-    case holdToRecord
-    /// Tap the mic button once to start recording, tap the stop button to finish. No lock capsule.
-    case tapToToggle
 }
 
 public enum InputViewAction: Sendable {
-    case giphy
     case photo
-    case add
-    case camera
     case send
 
-    case recordAudioHold
-    case recordAudioTap
-    case recordAudioLock
-    case stopRecordAudio
-    case deleteRecord
-    case playRecord
-    case pauseRecord
     case location
     case document
 
@@ -47,18 +27,11 @@ public enum InputViewState: Sendable {
     case empty
     case hasTextOrMedia
 
-    case waitingForRecordingPermission
-    case isRecordingHold
-    case isRecordingTap
-    case hasRecording
-    case playingRecording
-    case pausedRecording
-
     case editing
 
     var canSend: Bool {
         switch self {
-        case .hasTextOrMedia, .hasRecording, .isRecordingTap, .playingRecording, .pausedRecording: return true
+        case .hasTextOrMedia: return true
         default: return false
         }
     }
@@ -67,26 +40,21 @@ public enum InputViewState: Sendable {
 public enum AvailableInputType: Sendable {
     case text
     case media
-    case giphy
     case document
     case location
-    case audio
 }
 
 public struct InputViewAttachments {
     var medias: [Media] = []
-    var giphyMedia: GPHMedia?
     var documents: [DocumentItem] = []
     var staticLocation: StaticLocation?
     var liveLocation: LiveLocation?
-    var recording: Recording?
     var replyMessage: ReplyMessage?
 }
 
 struct InputView: View {
     
     @Environment(\.chatTheme) private var theme
-    @Environment(\.mediaPickerTheme) private var pickerTheme
     @Environment(\.chatSize) private var chatSize
 
     @EnvironmentObject private var keyboardState: KeyboardState
@@ -95,13 +63,8 @@ struct InputView: View {
     var inputFieldId: UUID
     var style: InputViewStyle
     var availableInputs: [AvailableInputType]
-    var recorderSettings: RecorderSettings = RecorderSettings()
-    var audioRecordingMode: AudioRecordingMode = .holdToRecord
-    var photoPickerBackend: PhotoPickerBackend = .custom
     var localization: ChatLocalization
 
-    @StateObject var recordingPlayer = RecordingPlayer()
-    
     private var onAction: (InputViewAction) -> Void {
         viewModel.inputViewAction()
     }
@@ -110,19 +73,8 @@ struct InputView: View {
         viewModel.state
     }
 
-    @State private var stopRecordButtonSize: CGSize = .zero
-    @State private var lockRecordButtonSize: CGSize = .zero
-    
-    @State private var recordButtonFrame: CGRect = .zero
-    @State private var lockRecordFrame: CGRect = .zero
-    @State private var deleteRecordFrame: CGRect = .zero
     @State private var inputBarFrame: CGRect = .zero
 
-    @State private var dragStart: Date?
-    @State private var tapDelayTimer: Timer?
-    @State private var cancelGesture = false
-    private let tapDelay = 0.2
-    private let stopRecordButtonOffset: CGFloat = 24
     private let attachMenuLeftMargin: CGFloat = 14
     private let attachMenuGap: CGFloat = 16
 
@@ -146,7 +98,7 @@ struct InputView: View {
                 }
                 .background {
                     RoundedRectangle(cornerRadius: 18)
-                        .fill(style == .message ? theme.colors.inputBG : theme.colors.inputSignatureBG)
+                        .fill(theme.colors.inputBG)
                 }
                 .frameGetter($inputBarFrame)
 
@@ -155,52 +107,25 @@ struct InputView: View {
             .padding(MessageView.horizontalScreenEdgePadding, 8)
         }
         .background(backgroundColor)
-        .onAppear {
-            viewModel.recordingPlayer = recordingPlayer
-            viewModel.setRecorderSettings(recorderSettings: recorderSettings)
-        }
         .onDrag(towards: .bottom, ofAmount: 100...) {
             keyboardState.resignFirstResponder()
         }
     }
     
-    @ViewBuilder
     var leftView: some View {
-        if [.isRecordingTap, .isRecordingHold, .hasRecording, .playingRecording, .pausedRecording].contains(state) {
-            deleteRecordButton
-        } else {
-            switch style {
-            case .message:
-                leftButton
-            case .signature:
-                if viewModel.mediaPickerMode == .cameraSelection {
-                    addButton
-                } else {
-                    Color.clear.frame(width: 12, height: 1)
-                }
-            }
-        }
+        leftButton
     }
 
     @ViewBuilder
     var middleView: some View {
         Group {
-            switch state {
-            case .hasRecording, .playingRecording, .pausedRecording:
-                recordWaveform
-            case .isRecordingHold:
-                swipeToCancel
-            case .isRecordingTap:
-                recordingInProgress
-            default:
-                TextInputView(
-                    text: $viewModel.text,
-                    inputFieldId: inputFieldId,
-                    style: style,
-                    availableInputs: availableInputs,
-                    localization: localization
-                )
-            }
+            TextInputView(
+                text: $viewModel.text,
+                inputFieldId: inputFieldId,
+                style: style,
+                availableInputs: availableInputs,
+                localization: localization
+            )
         }
         .frame(minHeight: 48)
     }
@@ -213,12 +138,6 @@ struct InputView: View {
                 if case .message = style, !viewModel.text.isEmpty {
                     clearTextButton
                 }
-            case .isRecordingHold, .isRecordingTap:
-                recordDurationInProcess
-            case .hasRecording:
-                recordDuration
-            case .playingRecording, .pausedRecording:
-                recordDurationLeft
             default:
                 EmptyView()
             }
@@ -256,70 +175,18 @@ struct InputView: View {
         if state == .editing {
             editingButtons
                 .frame(height: 48)
-        } else if audioRecordingMode == .tapToToggle {
-            tapToToggleButton
         } else {
-            holdToRecordButton
-        }
-    }
-
-    var holdToRecordButton: some View {
-        ZStack {
-            if [.isRecordingTap, .isRecordingHold].contains(state) {
-                RecordIndicator()
-                    .viewSize(80)
-                    .foregroundColor(theme.colors.sendButtonBackground)
-            }
-            Group {
-                if state.canSend || !isAudioAvailable() {
-                    sendButton
-                        .disabled(!state.canSend)
-                } else {
-                    recordButton
-                        .highPriorityGesture(dragGesture())
-                }
-            }
-            .compositingGroup()
-            .overlay(alignment: .top) {
-                if state == .isRecordingTap {
-                    stopRecordButton
-                        .sizeGetter($stopRecordButtonSize)
-                        .offset(y: -stopRecordButtonSize.height - stopRecordButtonOffset)
-                } else if state == .isRecordingHold {
-                    lockRecordButton
-                        .sizeGetter($lockRecordButtonSize)
-                        .offset(y: -lockRecordButtonSize.height - stopRecordButtonOffset)
-                }
-            }
-        }
-        .viewSize(48)
-    }
-
-    var tapToToggleButton: some View {
-        ZStack {
-            if state == .isRecordingTap {
-                RecordIndicator()
-                    .viewSize(80)
-                    .foregroundColor(theme.colors.sendButtonBackground)
-            }
-            if state == .isRecordingTap {
-                stopRecordButton
-            } else if state.canSend || !isAudioAvailable() {
+            ZStack {
                 sendButton
                     .disabled(!state.canSend)
-            } else {
-                recordButton
-                    .onTapGesture {
-                        onAction(.recordAudioTap)
-                    }
             }
+            .viewSize(48)
         }
-        .viewSize(48)
     }
-    
+
     @ViewBuilder
     var viewOnTop: some View {
-        if style == .message, photoPickerBackend == .system, !viewModel.attachments.medias.isEmpty {
+        if style == .message, !viewModel.attachments.medias.isEmpty {
             mediaAttachmentsPreview
         }
         if style == .message, !viewModel.attachments.documents.isEmpty {
@@ -362,12 +229,6 @@ struct InputView: View {
                             .viewSize(30)
                             .cornerRadius(4)
                             .padding(.trailing, 16)
-                    }
-                    
-                    if let _ = message.recording {
-                        theme.images.inputView.microphone
-                            .renderingMode(.template)
-                            .foregroundColor(theme.colors.mainTint)
                     }
                     
                     theme.images.reply.cancelReply
@@ -481,12 +342,6 @@ struct InputView: View {
         var items: [AttachMenuItem] = []
         if isMediaAvailable() {
             items.append(AttachMenuItem(icon: theme.images.inputView.attach, title: localization.attachMediaText, action: .photo))
-            if photoPickerBackend == .system {
-                items.append(AttachMenuItem(icon: theme.images.inputView.attachCamera, title: localization.attachCameraText, action: .camera))
-            }
-        }
-        if isGiphyAvailable() {
-            items.append(AttachMenuItem(icon: theme.images.inputView.sticker, title: localization.attachGifText, action: .giphy))
         }
         if isDocumentAvailable() {
             items.append(AttachMenuItem(icon: theme.images.attachMenu.document, title: localization.attachDocumentText, action: .document))
@@ -505,8 +360,6 @@ struct InputView: View {
             attachMenuButton(items: items)
         } else if let item = items.first, item.action == .photo {
             menuButton(action: .photo, image: theme.images.inputView.attach)
-        } else if let item = items.first, item.action == .giphy {
-            menuButton(action: .giphy, image: theme.images.inputView.sticker)
         } else if let item = items.first, item.action == .document {
             menuButton(action: .document, image: theme.images.attachMenu.document)
         } else if let item = items.first, item.action == .location {
@@ -572,17 +425,6 @@ struct InputView: View {
         }
     }
 
-    var addButton: some View {
-        Button {
-            onAction(.add)
-        } label: {
-            theme.images.inputView.add
-                .viewSize(24)
-                .circleBackground(theme.colors.sendButtonBackground)
-                .padding(EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 8))
-        }
-    }
-    
     var sendButton: some View {
         Button {
             onAction(.send)
@@ -593,219 +435,11 @@ struct InputView: View {
         }
     }
     
-    var recordButton: some View {
-        theme.images.inputView.microphone
-            .viewSize(48)
-            .circleBackground(theme.colors.sendButtonBackground)
-            .frameGetter($recordButtonFrame)
-    }
-    
-    var deleteRecordButton: some View {
-        Button {
-            onAction(.deleteRecord)
-        } label: {
-            theme.images.recordAudio.deleteRecord
-                .viewSize(24)
-                .padding(EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 8))
-        }
-        .frameGetter($deleteRecordFrame)
-    }
-    
-    var stopRecordButton: some View {
-        Button {
-            onAction(.stopRecordAudio)
-        } label: {
-            theme.images.recordAudio.stopRecord
-                .viewSize(28)
-                .background(
-                    Capsule()
-                        .fill(Color.white)
-                        .shadow(color: .black.opacity(0.4), radius: 1)
-                )
-        }
-    }
-    
-    var lockRecordButton: some View {
-        Button {
-            onAction(.recordAudioLock)
-        } label: {
-            VStack(spacing: 20) {
-                theme.images.recordAudio.lockRecord
-                theme.images.recordAudio.sendRecord
-            }
-            .frame(width: 28)
-            .padding(.vertical, 16)
-            .background(
-                Capsule()
-                    .fill(Color.white)
-                    .shadow(color: .black.opacity(0.4), radius: 1)
-            )
-        }
-        .frameGetter($lockRecordFrame)
-    }
-    
-    var swipeToCancel: some View {
-        HStack {
-            Spacer()
-            Button {
-                onAction(.deleteRecord)
-            } label: {
-                HStack {
-                    theme.images.recordAudio.cancelRecord
-                        .renderingMode(.template)
-                        .foregroundStyle(theme.colors.mainText)
-                    Text(localization.cancelButtonText)
-                        .font(.footnote)
-                        .foregroundColor(theme.colors.mainText)
-                }
-            }
-            Spacer()
-        }
-    }
-    
-    var recordingInProgress: some View {
-        HStack {
-            Spacer()
-            Text(localization.recordingText)
-                .font(.footnote)
-                .foregroundColor(theme.colors.mainText)
-            Spacer()
-        }
-    }
-    
-    var recordDurationInProcess: some View {
-        HStack {
-            Circle()
-                .foregroundColor(theme.colors.recordDot)
-                .viewSize(6)
-            recordDuration
-        }
-    }
-    
-    var recordDuration: some View {
-        Text(DateFormatter.timeString(Int(viewModel.attachments.recording?.duration ?? 0)))
-            .foregroundColor(theme.colors.mainText)
-            .opacity(0.6)
-            .font(.caption2)
-            .monospacedDigit()
-            .padding(.trailing, 12)
-    }
-    
-    var recordDurationLeft: some View {
-        Text(DateFormatter.timeString(Int(recordingPlayer.secondsLeft)))
-            .foregroundColor(theme.colors.mainText)
-            .opacity(0.6)
-            .font(.caption2)
-            .monospacedDigit()
-            .padding(.trailing, 12)
-    }
-    
-    var playRecordButton: some View {
-        Button {
-            onAction(.playRecord)
-        } label: {
-            theme.images.recordAudio.playRecord
-        }
-    }
-    
-    var pauseRecordButton: some View {
-        Button {
-            onAction(.pauseRecord)
-        } label: {
-            theme.images.recordAudio.pauseRecord
-        }
-    }
-    
-    @ViewBuilder
-    var recordWaveform: some View {
-        if let recording = viewModel.attachments.recording {
-            HStack(spacing: 8) {
-                Group {
-                    if state == .hasRecording || state == .pausedRecording {
-                        playRecordButton
-                    } else if state == .playingRecording {
-                        pauseRecordButton
-                    }
-                }
-                .frame(width: 20)
-                
-                RecordWaveformPlaying(samples: recording.waveformSamples, progress: recordingPlayer.progress, color: theme.colors.mainText, addExtraDots: true) { progress in
-                    Task {
-                        await recordingPlayer.seek(with: recording, to: progress)
-                    }
-                }
-            }
-            .padding(.horizontal, 8)
-        }
-    }
     
     var backgroundColor: Color {
-        switch style {
-        case .message:
-            return theme.contentBG
-        case .signature:
-            return pickerTheme.main.pickerBackground
-        }
+        theme.contentBG
     }
 
-    func dragGesture() -> some Gesture {
-        DragGesture(minimumDistance: 0.0, coordinateSpace: .global)
-            .onChanged { [state] value in
-                if dragStart == nil {
-                    dragStart = Date()
-                    cancelGesture = false
-                    tapDelayTimer = Timer.scheduledTimer(withTimeInterval: tapDelay, repeats: false) { _ in
-                        if state != .isRecordingTap, state != .waitingForRecordingPermission {
-                            DispatchQueue.main.async {
-                                self.onAction(.recordAudioHold)
-                            }
-                        }
-                    }
-                }
-                
-                if value.location.y < lockRecordFrame.minY,
-                   value.location.x > recordButtonFrame.minX {
-                    cancelGesture = true
-                    onAction(.recordAudioLock)
-                }
-                
-                if value.location.x < chatSize.width / 2,
-                   value.location.y > recordButtonFrame.minY {
-                    cancelGesture = true
-                    onAction(.deleteRecord)
-                }
-            }
-            .onEnded() { value in
-                if !cancelGesture {
-                    tapDelayTimer = nil
-                    if recordButtonFrame.contains(value.location) {
-                        if let dragStart = dragStart, Date().timeIntervalSince(dragStart) < tapDelay {
-                            onAction(.recordAudioTap)
-                        } else if state != .waitingForRecordingPermission {
-                            onAction(.send)
-                        }
-                    }
-                    else if lockRecordFrame.contains(value.location) {
-                        onAction(.recordAudioLock)
-                    }
-                    else if deleteRecordFrame.contains(value.location) {
-                        onAction(.deleteRecord)
-                    } else {
-                        onAction(.send)
-                    }
-                }
-                dragStart = nil
-            }
-    }
-    
-    private func isAudioAvailable() -> Bool {
-        return availableInputs.contains(AvailableInputType.audio)
-    }
-    
-    private func isGiphyAvailable() -> Bool {
-        return availableInputs.contains(AvailableInputType.giphy)
-    }
-    
     private func isMediaAvailable() -> Bool {
         return availableInputs.contains(AvailableInputType.media)
     }

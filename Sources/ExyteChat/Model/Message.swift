@@ -57,10 +57,8 @@ public struct Message: Identifiable, Sendable {
     public var attributedText: AttributedString
     public var attachments: [Attachment]
     public var reactions: [Reaction]
-    public var giphyMediaId: String?
     public var staticLocation: StaticLocation?
     public var liveLocation: LiveLocation?
-    public var recording: Recording?
     public var replyMessage: ReplyMessage?
     public var customData: [String: any Sendable]
 
@@ -81,11 +79,9 @@ public struct Message: Identifiable, Sendable {
         createdAt: Date = Date(),
         text: String = "",
         attachments: [Attachment] = [],
-        giphyMediaId: String? = nil,
         staticLocation: StaticLocation? = nil,
         liveLocation: LiveLocation? = nil,
         reactions: [Reaction] = [],
-        recording: Recording? = nil,
         replyMessage: ReplyMessage? = nil,
         customData: [String: any Sendable] = [:]
     ) {
@@ -95,11 +91,9 @@ public struct Message: Identifiable, Sendable {
         self.createdAt = createdAt
         self.attributedText = text.applyDefaultAttributes()
         self.attachments = attachments
-        self.giphyMediaId = giphyMediaId
         self.staticLocation = staticLocation
         self.liveLocation = liveLocation
         self.reactions = reactions
-        self.recording = recording
         self.replyMessage = replyMessage
         self.customData = customData
     }
@@ -111,11 +105,9 @@ public struct Message: Identifiable, Sendable {
         createdAt: Date = Date(),
         attributedText: AttributedString,
         attachments: [Attachment] = [],
-        giphyMediaId: String? = nil,
         staticLocation: StaticLocation? = nil,
         liveLocation: LiveLocation? = nil,
         reactions: [Reaction] = [],
-        recording: Recording? = nil,
         replyMessage: ReplyMessage? = nil,
         customData: [String: any Sendable] = [:]
     ) {
@@ -125,11 +117,9 @@ public struct Message: Identifiable, Sendable {
         self.createdAt = createdAt
         self.attributedText = attributedText
         self.attachments = attachments
-        self.giphyMediaId = giphyMediaId
         self.staticLocation = staticLocation
         self.liveLocation = liveLocation
         self.reactions = reactions
-        self.recording = recording
         self.replyMessage = replyMessage
         self.customData = customData
     }
@@ -160,8 +150,6 @@ public struct Message: Identifiable, Sendable {
             Attachment(id: document.id, url: document.url, type: .document, fileName: document.fileName, fileSize: document.fileSize)
         }
 
-        let giphyMediaId = draft.giphyMedia?.id
-
         return Message(
             id: id,
             user: user,
@@ -169,10 +157,8 @@ public struct Message: Identifiable, Sendable {
             createdAt: draft.createdAt,
             text: draft.text,
             attachments: attachments + documentAttachments,
-            giphyMediaId: giphyMediaId,
             staticLocation: draft.staticLocation,
             liveLocation: draft.liveLocation,
-            recording: draft.recording,
             replyMessage: draft.replyMessage
         )
     }
@@ -191,26 +177,12 @@ extension Message: Equatable {
         lhs.status == rhs.status &&
         lhs.createdAt == rhs.createdAt &&
         lhs.attributedText == rhs.attributedText &&
-        lhs.giphyMediaId == rhs.giphyMediaId &&
         lhs.staticLocation == rhs.staticLocation &&
         lhs.liveLocation == rhs.liveLocation &&
         lhs.attachments == rhs.attachments &&
         lhs.reactions == rhs.reactions &&
-        lhs.recording == rhs.recording &&
         lhs.replyMessage == rhs.replyMessage &&
         lhs.triggerRedraw == rhs.triggerRedraw
-    }
-}
-
-public struct Recording: Codable, Hashable, Sendable {
-    public var duration: Double
-    public var waveformSamples: [CGFloat]
-    public var url: URL?
-
-    public init(duration: Double = 0.0, waveformSamples: [CGFloat] = [], url: URL? = nil) {
-        self.duration = duration
-        self.waveformSamples = waveformSamples
-        self.url = url
     }
 }
 
@@ -220,8 +192,7 @@ public struct ReplyMessage: Codable, Identifiable, Hashable, Sendable {
         lhs.user == rhs.user &&
         lhs.createdAt == rhs.createdAt &&
         lhs.attributedText == rhs.attributedText &&
-        lhs.attachments == rhs.attachments &&
-        lhs.recording == rhs.recording
+        lhs.attachments == rhs.attachments
     }
 
     public var id: String
@@ -230,7 +201,6 @@ public struct ReplyMessage: Codable, Identifiable, Hashable, Sendable {
 
     public var attributedText: AttributedString
     public var attachments: [Attachment]
-    public var recording: Recording?
 
     public var text: String {
         String(attributedText.characters)
@@ -241,15 +211,13 @@ public struct ReplyMessage: Codable, Identifiable, Hashable, Sendable {
         user: User,
         createdAt: Date,
         text: String = "",
-        attachments: [Attachment] = [],
-        recording: Recording? = nil
+        attachments: [Attachment] = []
     ) {
         self.id = id
         self.user = user
         self.createdAt = createdAt
         self.attributedText = text.applyDefaultAttributes()
         self.attachments = attachments
-        self.recording = recording
     }
 
     public init(
@@ -257,24 +225,22 @@ public struct ReplyMessage: Codable, Identifiable, Hashable, Sendable {
         user: User,
         createdAt: Date,
         attributedText: AttributedString,
-        attachments: [Attachment] = [],
-        recording: Recording? = nil
+        attachments: [Attachment] = []
     ) {
         self.id = id
         self.user = user
         self.createdAt = createdAt
         self.attributedText = attributedText
         self.attachments = attachments
-        self.recording = recording
     }
 
     func toMessage() -> Message {
-        Message(id: id, user: user, createdAt: createdAt, attributedText: attributedText, attachments: attachments, recording: recording)
+        Message(id: id, user: user, createdAt: createdAt, attributedText: attributedText, attachments: attachments)
     }
 }
 
 public extension Message {
     func toReplyMessage() -> ReplyMessage {
-        ReplyMessage(id: id, user: user, createdAt: createdAt, attributedText: attributedText, attachments: attachments, recording: recording)
+        ReplyMessage(id: id, user: user, createdAt: createdAt, attributedText: attributedText, attachments: attachments)
     }
 }
